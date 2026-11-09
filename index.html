@@ -1,219 +1,420 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-Hant">
 <head>
-<meta charset="UTF-8">
-<title>本機圖片壓縮工具 v8</title>
+<meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<title>圖片壓縮轉檔</title>
 <style>
-body { font-family: -apple-system, BlinkMacSystemFont, system-ui; background:#f2f2f2; padding:16px; }
-.container { max-width:720px; margin:auto; background:#fff; border-radius:12px; padding:16px; box-shadow:0 4px 12px rgba(0,0,0,.1); }
-.dropzone { border:2px dashed #aaa; border-radius:10px; padding:32px; text-align:center; cursor:pointer; color:#555; }
-.dropzone.drag { background:#eef6ff; border-color:#3b82f6; }
-.controls { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
-.controls label { flex-basis:100%; }
-.controls input, .controls select, .controls button { flex:1 1 100%; padding:8px; margin-top:4px; box-sizing:border-box; }
-button { background:#3b82f6; color:#fff; border:none; border-radius:8px; font-size:16px; cursor:pointer; }
-.preview { display:grid; grid-template-columns:repeat(auto-fill, minmax(120px,1fr)); gap:10px; margin-top:16px; }
-.preview-item { text-align:center; font-size:12px; border:1px solid #ddd; padding:4px; border-radius:6px; background:#fafafa; position:relative; }
-.preview-item img { width:100%; height:80px; object-fit:cover; border-radius:4px; }
-.remove-btn { position:absolute; top:2px; right:2px; background:#ff4d4f; color:#fff; border:none; border-radius:4px; font-size:10px; cursor:pointer; padding:1px 4px; }
-.info { font-size:11px; margin-top:2px; white-space:pre-line; }
-small { color:#666; }
-.size-container { display:flex; gap:8px; }
-.size-container input, .size-container select { flex:1 1 auto; }
-#actionBtn { margin-top:16px; width:100%; display:none; }
+:root{
+  --bg:#f5f6f8; --card:#fff; --text:#1d1f23; --muted:#6b7280; --line:#e3e5e9;
+  --accent:#2563eb; --accent-text:#fff; --good:#15803d; --bad:#b91c1c; --drop:#eef3ff;
+}
+@media (prefers-color-scheme: dark){
+  :root{ --bg:#111317; --card:#1a1d23; --text:#e8eaed; --muted:#9aa1ac; --line:#2c3038;
+    --accent:#4f8cff; --accent-text:#fff; --good:#4ade80; --bad:#f87171; --drop:#1b2436; }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);
+  font:15px/1.5 -apple-system,BlinkMacSystemFont,"PingFang TC","Noto Sans TC",sans-serif}
+main{max-width:980px;margin:0 auto;padding:24px 16px 60px}
+h1{font-size:22px;margin:0 0 16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:16px}
+#drop{border:2px dashed var(--line);border-radius:12px;padding:36px 16px;text-align:center;cursor:pointer;transition:.15s}
+#drop.over{border-color:var(--accent);background:var(--drop)}
+#drop strong{display:block;font-size:17px;margin-bottom:4px}
+#drop small{color:var(--muted)}
+.settings{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px}
+label{display:flex;flex-direction:column;gap:6px;font-size:13px;color:var(--muted)}
+select,input[type=number]{font:inherit;color:var(--text);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:7px 9px}
+input[type=range]{width:100%}
+.row{display:flex;gap:6px;align-items:center} .row input{flex:1;min-width:0}
+.row input.qn{flex:0 0 64px}
+select,input[type=number]{font-size:16px} /* 避免 iPhone 點輸入框時自動放大 */
+.check{flex-direction:row;align-items:center;gap:8px;color:var(--text)}
+.bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
+.summary{color:var(--muted);font-size:14px}
+button{font:inherit;border:0;border-radius:8px;padding:8px 14px;cursor:pointer;background:var(--accent);color:var(--accent-text)}
+button.ghost{background:transparent;color:var(--text);border:1px solid var(--line)}
+button:disabled{opacity:.45;cursor:default}
+ul{list-style:none;margin:0;padding:0}
+li{display:grid;grid-template-columns:64px 1fr auto;gap:12px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}
+li:first-child{border-top:0}
+li img{width:64px;height:64px;object-fit:cover;border-radius:8px;background:var(--bg)}
+.name{font-weight:600;word-break:break-all}
+.meta{font-size:13px;color:var(--muted)}
+.good{color:var(--good)} .bad{color:var(--bad)}
+.acts{display:flex;gap:6px}
+.acts button{padding:6px 10px;font-size:13px}
+@media (max-width:560px){
+  main{padding:16px 12px 40px}
+  .settings{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .settings > label{min-width:0}
+  .settings label:nth-child(2),.settings label:nth-child(5),.settings .check{grid-column:1/-1}
+  li{grid-template-columns:52px 1fr} li img{width:52px;height:52px}
+  li .acts{grid-column:1/-1} li .acts button{flex:1}
+  .bar{flex-direction:column;align-items:stretch} .bar .acts button{flex:1}
+}
+@media (pointer:coarse){ button{min-height:44px} li .acts button{padding:10px 14px;font-size:15px} }
 </style>
 </head>
 <body>
+<main>
+  <h1>圖片壓縮轉檔</h1>
 
-<div class="container">
-<h2>本機圖片壓縮 v8</h2>
+  <div class="card">
+    <div id="drop">
+      <strong>拖曳圖片到這裡，或點一下選擇</strong>
+      <small>JPG・PNG・WebP・AVIF・HEIC/HEIF・GIF・BMP・TIFF・SVG・ICO　全部在本機處理，不會上傳</small>
+    </div>
+    <input id="file" type="file" multiple hidden
+      accept="image/*,.heic,.heif,.tif,.tiff,.avif,.bmp,.ico,.svg">
+  </div>
 
-<div class="dropzone" id="dropzone">
-  拖曳圖片到這裡<br>
-  <small>或點擊選擇（iPhone 請點擊）</small>
-</div>
+  <div class="card settings">
+    <label>輸出格式
+      <select id="fmt"></select>
+    </label>
+    <label>品質（1–100）
+      <span class="row"><input id="q" type="range" min="1" max="100" value="80">
+      <input id="qn" type="number" min="1" max="100" value="80" inputmode="numeric" class="qn"></span>
+    </label>
+    <label>最大寬度（px，空白＝不限）
+      <input id="mw" type="number" min="1" placeholder="不限">
+    </label>
+    <label>最大高度（px，空白＝不限）
+      <input id="mh" type="number" min="1" placeholder="不限">
+    </label>
+    <label>檔案大小上限（空白＝不限）
+      <span class="row"><input id="lim" type="number" min="0" step="any" placeholder="不限">
+      <select id="unit"><option value="1024">KB</option><option value="1048576">MB</option></select></span>
+    </label>
+    <label class="check"><input id="keep" type="checkbox" checked>結果變大時保留原檔</label>
+  </div>
 
-<input type="file" id="fileInput" multiple accept="image/*,.heic,.heif" hidden>
+  <div class="card">
+    <div class="bar">
+      <span class="summary" id="sum">尚未加入圖片</span>
+      <span class="acts">
+        <button class="ghost" id="clear" disabled>清除</button>
+        <button id="shareAll" disabled hidden>全部存到相簿</button>
+        <button id="zip" disabled>全部下載 ZIP</button>
+      </span>
+    </div>
+    <ul id="list"></ul>
+  </div>
+</main>
 
-<div class="controls">
-<label>輸出格式</label>
-<select id="format">
-  <option value="image/jpeg">JPG</option>
-  <option value="image/webp">WEBP</option>
-  <option value="image/png">PNG</option>
-</select>
-
-<label>品質（預設 100）</label>
-<input type="number" id="quality" value="100" min="1" max="100">
-
-<label>目標檔案大小</label>
-<div class="size-container">
-  <input type="number" id="sizeValue" placeholder="可留空">
-  <select id="sizeUnit">
-    <option value="mb" selected>MB</option>
-    <option value="kb">KB</option>
-  </select>
-</div>
-
-<button id="startBtn">開始處理</button>
-</div>
-
-<div class="preview" id="preview"></div>
-
-<button id="actionBtn"></button>
-
-<small>
-• 所有處理皆在本機完成<br>
-• iPhone 完成後可直接分享或儲存到相簿
-</small>
-</div>
-
-<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <script>
-let files = [];
-let outputFiles = [];
-let zipBlobGlobal;
+const $ = s => document.querySelector(s);
+const items = [];   // {id,file,source,w,h,out,outName,el,status}
+let seq = 0;
 
-const dz = document.getElementById("dropzone");
-const fi = document.getElementById("fileInput");
-const preview = document.getElementById("preview");
-const actionBtn = document.getElementById("actionBtn");
-const startBtn = document.getElementById("startBtn");
+/* ---------- 輸出格式：偵測瀏覽器能編碼哪些 ---------- */
+const FORMATS = [
+  {type:'image/jpeg', ext:'jpg', label:'JPG', lossy:true},
+  {type:'image/webp', ext:'webp', label:'WebP', lossy:true},
+  {type:'image/avif', ext:'avif', label:'AVIF', lossy:true},
+  {type:'image/png',  ext:'png', label:'PNG（無損）', lossy:false},
+];
+(function initFormats(){
+  const c = document.createElement('canvas'); c.width = c.height = 1;
+  const sel = $('#fmt');
+  for (const f of FORMATS) {
+    if (f.type !== 'image/png' && f.type !== 'image/jpeg' &&
+        !c.toDataURL(f.type).startsWith('data:' + f.type)) continue;
+    sel.add(new Option(f.label, f.type));
+  }
+  sel.value = [...sel.options].some(o => o.value === 'image/webp') ? 'image/webp' : 'image/jpeg';
+})();
 
-// 判斷是否 iOS
-const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-
-// 拖曳與點擊事件
-dz.addEventListener("click", () => fi.click());
-dz.addEventListener("dragover", e => { e.preventDefault(); dz.classList.add("drag"); });
-dz.addEventListener("dragleave", e => { e.preventDefault(); dz.classList.remove("drag"); });
-dz.addEventListener("drop", e => { e.preventDefault(); dz.classList.remove("drag"); handleFiles([...e.dataTransfer.files]); });
-
-fi.addEventListener("change", e => handleFiles([...fi.files]));
-
-// 處理上傳檔案
-function handleFiles(f) {
-  files = f;
-  dz.innerText = `${files.length} 張圖片已加入`;
-  renderPreview();
+/* ---------- 依需要載入外部函式庫 ---------- */
+const libs = {};
+function loadScript(url){
+  return libs[url] ||= new Promise((ok, fail) => {
+    const s = document.createElement('script');
+    s.src = url; s.onload = ok; s.onerror = () => fail(new Error('無法載入解碼元件，請確認網路'));
+    document.head.appendChild(s);
+  });
 }
+const LIB = {
+  heic: 'https://cdn.jsdelivr.net/npm/libheif-js@1.23.5/libheif-wasm/libheif-bundle.js',
+  tiff: 'https://cdn.jsdelivr.net/npm/utif@3.1.0/UTIF.js',
+  zip:  'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js',
+};
 
-// 顯示預覽
-function renderPreview() {
-  preview.innerHTML = "";
-  files.forEach((file, index) => {
-    const div = document.createElement("div");
-    div.className = "preview-item";
+/* ---------- 解碼：把各種格式變成可畫在 canvas 上的來源 ---------- */
+const extOf = n => (n.split('.').pop() || '').toLowerCase();
 
-    const img = document.createElement("img");
-    img.src = URL.createObjectURL(file);
-
-    const remove = document.createElement("button");
-    remove.className = "remove-btn";
-    remove.textContent = "移除";
-    remove.addEventListener("click", () => { files.splice(index,1); renderPreview(); });
-
-    const info = document.createElement("div");
-    info.className = "info";
-    info.textContent = `原始: ${(file.size/1024/1024).toFixed(2)} MB`;
-
-    div.appendChild(img);
-    div.appendChild(remove);
-    div.appendChild(info);
-    preview.appendChild(div);
+function loadImg(blob){
+  return new Promise((ok, fail) => {
+    const url = URL.createObjectURL(blob), img = new Image();
+    img.onload = () => ok(img);
+    img.onerror = () => { URL.revokeObjectURL(url); fail(new Error('瀏覽器無法讀取此格式')); };
+    img.src = url;
   });
 }
 
-// 開始壓縮
-startBtn.addEventListener("click", start);
+async function decode(file){
+  const ext = extOf(file.name), t = file.type;
+  const isHeic = /hei[cf]/.test(t) || ['heic','heif'].includes(ext);
+  const isTiff = /tiff/.test(t) || ['tif','tiff'].includes(ext);
+  const isSvg  = t === 'image/svg+xml' || ext === 'svg';
 
-async function start() {
-  if (!files.length) return alert("請先加入圖片");
-
-  const format = document.getElementById("format").value;
-  let qInit = document.getElementById("quality").value / 100;
-  const sizeVal = document.getElementById("sizeValue").value;
-  const unit = document.getElementById("sizeUnit").value;
-  const maxSize = sizeVal ? sizeVal * (unit==="mb"?1024*1024:1024) : null;
-
-  outputFiles = [];
-
-  for (let i=0; i<files.length; i++) {
-    const file = files[i];
+  if (isTiff) {
+    await loadScript(LIB.tiff);
+    const buf = await file.arrayBuffer();
+    const ifds = UTIF.decode(buf);
+    UTIF.decodeImage(buf, ifds[0]);
+    const rgba = UTIF.toRGBA8(ifds[0]);
+    const c = document.createElement('canvas');
+    c.width = ifds[0].width; c.height = ifds[0].height;
+    c.getContext('2d').putImageData(new ImageData(new Uint8ClampedArray(rgba), c.width, c.height), 0, 0);
+    return c;
+  }
+  if (isSvg) {
     const img = await loadImg(file);
-    let q = qInit;
-    let blob;
-
-    do {
-      blob = await compress(img, format, q);
-      q -= 0.05;
-    } while (maxSize && blob.size > maxSize && q > 0.1);
-
-    const outFile = new File([blob], file.name.replace(/\..+$/, "") + "." + format.split("/")[1], { type: format });
-    outputFiles.push(outFile);
-
-    const div = preview.querySelectorAll(".preview-item")[i];
-    const info = div.querySelector(".info");
-    info.textContent = `原始: ${(file.size/1024/1024).toFixed(2)} MB\n壓縮: ${(blob.size/1024/1024).toFixed(2)} MB`;
+    if (!img.naturalWidth) { img.width = 1024; img.height = 1024; }
+    return img;
   }
-
-  // 顯示桌機或 iPhone 按鈕
-  actionBtn.style.display = "block";
-
-  if (isIOS && navigator.canShare && navigator.canShare({ files: outputFiles })) {
-    actionBtn.textContent = "儲存到相簿 / 分享";
-    actionBtn.onclick = saveToPhotos;
-  } else {
-    actionBtn.textContent = "下載壓縮檔案 (ZIP)";
-    zipBlobGlobal = await createZip(outputFiles);
-    actionBtn.onclick = () => download(zipBlobGlobal, "compressed_images.zip");
+  // 先用瀏覽器內建解碼（Safari 可直接讀 HEIC）
+  try { return await createImageBitmap(file, {imageOrientation:'from-image'}); } catch {}
+  try { return await loadImg(file); } catch (e) {
+    if (!isHeic) throw e;
   }
+  // HEIC 後備方案（瀏覽器不支援時用 libheif 解碼）
+  return await decodeHeic(file);
 }
 
-function loadImg(file) {
-  return new Promise(r => {
-    const img = new Image();
-    img.onload = () => r(img);
-    img.src = URL.createObjectURL(file);
-  });
+let heifLib;
+async function decodeHeic(file){
+  await loadScript(LIB.heic);
+  const lib = await (heifLib ||= Promise.resolve(libheif()));
+  const images = new lib.HeifDecoder().decode(new Uint8Array(await file.arrayBuffer()));
+  if (!images || !images.length) throw new Error('HEIC 檔案無法解碼');
+  const im = images[0], w = im.get_width(), h = im.get_height();
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  const ctx = c.getContext('2d'), data = ctx.createImageData(w, h);
+  await new Promise((ok, fail) => im.display(data, d => d ? ok() : fail(new Error('HEIC 檔案無法解碼'))));
+  ctx.putImageData(data, 0, 0);
+  images.forEach(i => i.free && i.free());
+  return c;
 }
 
-function compress(img, type, q) {
-  return new Promise(r=>{
-    const c=document.createElement("canvas");
-    c.width=img.width; c.height=img.height;
-    c.getContext("2d").drawImage(img,0,0);
-    c.toBlob(r,type,q);
-  });
+const dims = s => [s.naturalWidth || s.width, s.naturalHeight || s.height];
+
+/* ---------- 壓縮 ---------- */
+function settings(){
+  return {
+    type: $('#fmt').value,
+    q: +$('#q').value / 100,
+    mw: +$('#mw').value || Infinity,
+    mh: +$('#mh').value || Infinity,
+    keep: $('#keep').checked,
+    limit: (+$('#lim').value || 0) * +$('#unit').value,
+  };
 }
 
-async function createZip(filesArr){
-  const zip = new JSZip();
-  filesArr.forEach(f=>zip.file(f.name,f));
-  return await zip.generateAsync({ type:"blob" });
+function draw(src, w, h, type){
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  const ctx = c.getContext('2d');
+  if (type === 'image/jpeg') { ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, w, h); }
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(src, 0, 0, w, h);
+  return c;
 }
+const encode = (c, type, q) => new Promise(ok => c.toBlob(ok, type, q));
 
-function download(blob,name){
-  const a=document.createElement("a");
-  a.href=URL.createObjectURL(blob);
-  a.download=name;
-  a.click();
-}
+async function compress(it, s){
+  const [w0, h0] = dims(it.source);
+  let r = Math.min(1, s.mw / w0, s.mh / h0);
+  let w = Math.max(1, Math.round(w0 * r)), h = Math.max(1, Math.round(h0 * r));
+  const fmt = FORMATS.find(f => f.type === s.type);
+  let c = draw(it.source, w, h, s.type);
+  let blob = await encode(c, s.type, s.q), q = s.q, overLimit = false;
 
-// iPhone / iPad 儲存到相簿
-async function saveToPhotos(){
-  if (navigator.canShare && navigator.canShare({ files: outputFiles })) {
-    try {
-      await navigator.share({ files: outputFiles, title:"壓縮後圖片" });
-    } catch(e){
-      alert("分享取消或失敗");
+  // 有大小上限：先降品質（二分搜尋），還是太大就逐步縮小尺寸
+  if (s.limit && blob.size > s.limit) {
+    let scale = 1, best = null;
+    for (let round = 0; round < 15 && !best; round++) {
+      if (round) {
+        scale *= 0.8;
+        w = Math.max(1, Math.round(w0 * r * scale)); h = Math.max(1, Math.round(h0 * r * scale));
+        c = draw(it.source, w, h, s.type);
+      }
+      if (fmt.lossy) {
+        const low = await encode(c, s.type, 0.05);
+        if (low.size <= s.limit) {
+          best = low; q = 0.05;
+          let lo = 0.05, hi = s.q;
+          for (let i = 0; i < 7; i++) {
+            const mid = (lo + hi) / 2, b = await encode(c, s.type, mid);
+            if (b.size <= s.limit) { best = b; q = mid; lo = mid; } else hi = mid;
+          }
+        } else blob = low;
+      } else {
+        const b = await encode(c, s.type);
+        if (b.size <= s.limit) best = b; else blob = b;
+      }
+      if (w === 1 && h === 1) break;
     }
-  } else {
-    alert("此裝置不支援直接儲存相簿，請長按下載圖片");
+    if (best) blob = best; else overLimit = true;
+  }
+
+  let name = it.file.name.replace(/\.[^.]+$/, '') + '.' + fmt.ext;
+  let kept = false;
+  // 同格式、未縮尺寸、結果反而變大 → 保留原檔
+  if (s.keep && blob.size >= it.file.size && w === w0 && h === h0 && it.file.type === s.type) {
+    blob = it.file; name = it.file.name; kept = true; overLimit = false;
+  }
+  return {blob, name, w, h, kept, q: fmt.lossy && !kept ? Math.round(q * 100) : null, overLimit};
+}
+
+/* ---------- 介面 ---------- */
+const fmtSize = b => b < 1024 ? b + ' B' : b < 1048576 ? (b/1024).toFixed(1) + ' KB' : (b/1048576).toFixed(2) + ' MB';
+
+function render(it){
+  const m = it.el.querySelector('.meta'), a = it.el.querySelector('.acts');
+  if (it.status === 'error') { m.innerHTML = `<span class="bad">${it.err}</span>`; a.innerHTML = ''; return; }
+  if (!it.out) { m.textContent = fmtSize(it.file.size) + '　處理中…'; return; }
+  const o = it.out, pct = Math.round((1 - o.blob.size / it.file.size) * 100);
+  const diff = pct >= 0 ? `<span class="good">−${pct}%</span>` : `<span class="bad">+${-pct}%</span>`;
+  m.innerHTML = `${fmtSize(it.file.size)} → <b>${fmtSize(o.blob.size)}</b> ${diff}　${o.w}×${o.h}${o.q ? '　品質 ' + o.q : ''}${o.kept ? '　（保留原檔）' : ''}${o.overLimit ? '　<span class="bad">無法壓到上限內</span>' : ''}`;
+  a.innerHTML = '';
+  const dl = document.createElement('button'); dl.textContent = useShare(o.blob) ? '存到相簿' : '下載';
+  dl.onclick = () => save(o.blob, o.name);
+  const rm = document.createElement('button'); rm.textContent = '移除'; rm.className = 'ghost';
+  rm.onclick = () => removeItem(it);
+  a.append(dl, rm);
+}
+
+function summary(){
+  const done = items.filter(i => i.out);
+  $('#zip').disabled = !done.length;
+  $('#shareAll').hidden = !(done.length && useShare(done[0].out.blob));
+  $('#shareAll').disabled = !done.length;
+  $('#clear').disabled = !items.length;
+  if (!items.length) { $('#sum').textContent = '尚未加入圖片'; return; }
+  const a = done.reduce((s, i) => s + i.file.size, 0), b = done.reduce((s, i) => s + i.out.blob.size, 0);
+  $('#sum').textContent = `${done.length}/${items.length} 張完成　${fmtSize(a)} → ${fmtSize(b)}` +
+    (a ? (b <= a ? `（省 ${Math.round((1 - b / a) * 100)}%）` : `（增加 ${Math.round((b / a - 1) * 100)}%）`) : '');
+}
+
+/* 手機：用系統分享選單，選「儲存影像」即可存到相簿；電腦：一般下載 */
+const isTouch = matchMedia('(pointer:coarse)').matches;
+const toFile = (blob, name) => new File([blob], name, {type: blob.type});
+function useShare(blob){
+  try { return isTouch && !!navigator.canShare && navigator.canShare({files:[toFile(blob, 'a.jpg')]}); }
+  catch { return false; }
+}
+async function shareFiles(files){
+  try { await navigator.share({files}); return true; }
+  catch (e) { return e.name === 'AbortError'; }  // 使用者自己取消不算失敗
+}
+
+async function save(blob, name){
+  if (useShare(blob) && await shareFiles([toFile(blob, name)])) return;
+  download(blob, name);
+}
+
+function download(blob, name){
+  const url = URL.createObjectURL(blob), a = document.createElement('a');
+  a.href = url; a.download = name; a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+}
+
+function removeItem(it){
+  items.splice(items.indexOf(it), 1); it.el.remove();
+  if (it.thumb) URL.revokeObjectURL(it.thumb);
+  summary();
+}
+
+async function addFiles(files){
+  const list = [...files].filter(f => f.type.startsWith('image/') ||
+    /\.(heic|heif|tiff?|avif|bmp|ico|svg|jpe?g|png|webp|gif)$/i.test(f.name));
+  for (const file of list) {
+    const it = {id: ++seq, file};
+    it.el = document.createElement('li');
+    it.el.innerHTML = `<img alt=""><div><div class="name"></div><div class="meta"></div></div><div class="acts"></div>`;
+    it.el.querySelector('.name').textContent = file.name;
+    $('#list').appendChild(it.el);
+    items.push(it); render(it); summary();
+  }
+  // 逐張處理，避免大量 HEIC 同時解碼吃光記憶體
+  for (const it of items.filter(i => !i.source && i.status !== 'error')) {
+    try {
+      it.source = await decode(it.file);
+      await run(it);
+    } catch (e) {
+      it.status = 'error'; it.err = '無法處理：' + (e.message || e); render(it);
+    }
+    summary();
   }
 }
-</script>
 
+async function run(it){
+  it.out = await compress(it, settings());
+  if (it.thumb) URL.revokeObjectURL(it.thumb);
+  it.thumb = URL.createObjectURL(it.out.blob);
+  it.el.querySelector('img').src = it.thumb;
+  render(it);
+}
+
+let rerunTimer, rerunning = Promise.resolve();
+function rerunAll(){
+  clearTimeout(rerunTimer);
+  rerunTimer = setTimeout(() => {
+    rerunning = rerunning.then(async () => {
+      for (const it of items.filter(i => i.source)) { await run(it); summary(); }
+    });
+  }, 250);
+}
+
+/* ---------- 事件 ---------- */
+const drop = $('#drop'), input = $('#file');
+drop.onclick = () => input.click();
+input.onchange = () => { addFiles(input.files); input.value = ''; };
+['dragenter','dragover'].forEach(e => drop.addEventListener(e, ev => { ev.preventDefault(); drop.classList.add('over'); }));
+['dragleave','drop'].forEach(e => drop.addEventListener(e, ev => { ev.preventDefault(); drop.classList.remove('over'); }));
+drop.addEventListener('drop', ev => addFiles(ev.dataTransfer.files));
+document.addEventListener('paste', ev => addFiles([...ev.clipboardData.files]));
+
+$('#q').oninput = () => { $('#qn').value = $('#q').value; rerunAll(); };
+$('#qn').oninput = () => {
+  const v = Math.round(+$('#qn').value);
+  if (v >= 1 && v <= 100) { $('#q').value = v; rerunAll(); }
+};
+$('#qn').onchange = () => {   // 離開輸入框時把超出範圍的數字拉回 1–100
+  $('#qn').value = Math.min(100, Math.max(1, Math.round(+$('#qn').value) || 80));
+  $('#q').value = $('#qn').value; rerunAll();
+};
+$('#fmt').onchange = () => { $('#q').disabled = $('#qn').disabled = $('#fmt').value === 'image/png'; rerunAll(); };
+['#mw','#mh','#keep','#lim','#unit'].forEach(s => $(s).addEventListener('input', rerunAll));
+
+$('#clear').onclick = () => { [...items].forEach(removeItem); };
+$('#shareAll').onclick = async () => {
+  const used = new Set(), files = [];
+  for (const it of items.filter(i => i.out)) {
+    let n = it.out.name, k = 1;
+    while (used.has(n)) n = it.out.name.replace(/(\.[^.]+)$/, `-${k++}$1`);
+    used.add(n); files.push(toFile(it.out.blob, n));
+  }
+  if (!await shareFiles(files)) alert('這台裝置無法一次分享這麼多張，請改用每張的「存到相簿」');
+};
+$('#zip').onclick = async () => {
+  const btn = $('#zip'); btn.disabled = true; btn.textContent = '打包中…';
+  try {
+    await loadScript(LIB.zip);
+    const zip = new JSZip(), used = new Set();
+    for (const it of items.filter(i => i.out)) {
+      let n = it.out.name, k = 1;
+      while (used.has(n)) n = it.out.name.replace(/(\.[^.]+)$/, `-${k++}$1`);
+      used.add(n); zip.file(n, it.out.blob);
+    }
+    download(await zip.generateAsync({type:'blob'}), 'images.zip');
+  } catch (e) { alert(e.message || e); }
+  btn.textContent = '全部下載 ZIP'; summary();
+};
+window.__addFiles = addFiles; // 測試用
+</script>
 </body>
 </html>
